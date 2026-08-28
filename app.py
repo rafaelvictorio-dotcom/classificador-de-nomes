@@ -3,6 +3,8 @@ import pandas as pd
 from io import BytesIO
 import gender_guesser.detector as gender
 from openpyxl.utils import get_column_letter
+import base64
+import os
 
 # --- INICIALIZA O MOTOR OFFLINE ---
 @st.cache_resource
@@ -29,74 +31,94 @@ def classificar_genero_rapido(nome_completo):
         else:
             return "M"
 
-# --- CONFIGURAÇÃO DA PÁGINA (FAVICON LOCAL) ---
-st.set_page_config(
-    page_title="Classificador - SulAmérica", 
-    page_icon="logo.png", 
-    layout="centered"
-)
+# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 ---
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
-# --- ESTILO CUSTOMIZADO (FUNDO DA IMAGEM & TRADUÇÃO) ---
-st.markdown("""
-    <style>
-    /* Imagem de Fundo em toda a aplicação */
-    .stApp {
-        background-image: url("app/static/fundo.jpg");
+# Tenta carregar a imagem de fundo do repositório
+fundo_css = ""
+if os.path.exists("fundo.jpg"):
+    bin_str = get_base64_of_bin_file('fundo.jpg')
+    fundo_css = f"""
+    .stApp {{
+        background-image: url("data:image/jpg;base64,{bin_str}");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
+    }}
+    """
+else:
+    # Caso a imagem não seja encontrada, aplica a cor azul da SulAmérica como fundo
+    fundo_css = """
+    .stApp {
+        background-color: #002D62;
     }
+    """
 
-    /* Card Central com fundo claro levemente transparente para contraste */
-    .main .block-container {
-        background-color: rgba(255, 255, 255, 0.95);
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(
+    page_title="Classificador - SulAmérica", 
+    page_icon="logo.png" if os.path.exists("logo.png") else "💙", 
+    layout="centered"
+)
+
+# --- ESTILO CUSTOMIZADO (FUNDO & TRADUÇÃO) ---
+st.markdown(f"""
+    <style>
+    {fundo_css}
+
+    /* Card Central Fosco para Leitura */
+    .main .block-container {{
+        background-color: rgba(255, 255, 255, 0.96);
         padding: 30px 40px !important;
         border-radius: 16px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         margin-top: 30px;
         margin-bottom: 30px;
-    }
+    }}
     
     /* Aumento de Fontes Globais */
-    html, body, [class*="css"] {
+    html, body, [class*="css"] {{
         font-size: 18px !important;
-    }
+    }}
     
-    .stTextInput input {
+    .stTextInput input {{
         font-size: 18px !important;
         padding: 12px !important;
-    }
+    }}
 
     /* TRADUÇÃO DO UPLOAD DE ARQUIVOS */
-    [data-testid="stFileUploaderDropzoneInstructions"] div span {
+    [data-testid="stFileUploaderDropzoneInstructions"] div span {{
         display: none !important;
-    }
-    [data-testid="stFileUploaderDropzoneInstructions"] div::after {
+    }}
+    [data-testid="stFileUploaderDropzoneInstructions"] div::after {{
         content: "Arraste e solte o arquivo aqui";
         font-size: 18px !important;
         font-weight: bold;
         color: #002D62;
-    }
-    [data-testid="stFileUploaderDropzoneInstructions"] small {
+    }}
+    [data-testid="stFileUploaderDropzoneInstructions"] small {{
         display: none !important;
-    }
-    [data-testid="stFileUploaderDropzone"] button {
+    }}
+    [data-testid="stFileUploaderDropzone"] button {{
         font-size: 0px !important;
         background-color: #002D62 !important;
         color: white !important;
         border-radius: 6px !important;
         padding: 8px 18px !important;
-    }
-    [data-testid="stFileUploaderDropzone"] button::after {
+    }}
+    [data-testid="stFileUploaderDropzone"] button::after {{
         content: "Procurar arquivo";
         font-size: 16px !important;
         font-weight: bold;
         display: block;
-    }
+    }}
 
     /* Estilo dos Botões */
-    .stButton>button {
+    .stButton>button {{
         background-color: #F37021;
         color: white;
         border-radius: 8px;
@@ -106,40 +128,40 @@ st.markdown("""
         font-size: 18px !important;
         transition: all 0.3s ease-in-out;
         box-shadow: 0 4px 6px rgba(243, 112, 33, 0.2);
-    }
-    .stButton>button:hover {
+    }}
+    .stButton>button:hover {{
         background-color: #D95B0F;
         color: white;
         transform: translateY(-2px);
-    }
+    }}
     
-    .stDownloadButton>button {
+    .stDownloadButton>button {{
         background-color: #002D62;
         color: white;
         border-radius: 8px;
         font-weight: bold;
         font-size: 18px !important;
         padding: 12px 28px;
-    }
+    }}
 
     /* Títulos */
-    .header-title {
+    .header-title {{
         font-size: 34px !important;
         font-weight: 800;
         color: #002D62;
         margin-bottom: 5px;
-    }
-    .header-sub {
+    }}
+    .header-sub {{
         font-size: 17px !important;
         color: #555555;
         margin-bottom: 20px;
-    }
+    }}
     
-    button[data-baseweb="tab"] {
+    button[data-baseweb="tab"] {{
         color: #002D62 !important;
         font-size: 20px !important;
         font-weight: bold !important;
-    }
+    }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -147,7 +169,8 @@ st.markdown("""
 col_logo, col_titulo = st.columns([1.2, 2.8])
 
 with col_logo:
-    st.image("logo.png", width=160)
+    if os.path.exists("logo.png"):
+        st.image("logo.png", width=160)
 
 with col_titulo:
     st.markdown('<p class="header-title">Classificador de Gênero</p>', unsafe_allow_html=True)
