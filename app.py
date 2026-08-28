@@ -29,53 +29,60 @@ def classificar_genero_rapido(nome_completo):
         else:
             return "M"
 
-# --- SVG VETORIAL OFICIAL DA SULAMÉRICA ---
-FAVICON_SULAMERICA = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%20002D62'/%3E%3Cpath d='M30 65 Q 50 55 70 65 Q 50 75 30 65' fill='%23F37021'/%3E%3Ctext x='50' y='50' font-family='Arial, sans-serif' font-weight='bold' font-size='42' fill='white' text-anchor='middle' dominant-baseline='central'%3ES%3C/text%3E%3C/svg%3E"
-
-LOGO_SVG_HTML = """
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="180" height="45">
-  <path d="M 10 50 Q 30 40 50 50 Q 30 60 10 50" fill="#F37021"/>
-  <text x="5" y="38" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-weight="900" font-size="34" fill="#002D62">SulAmérica</text>
-  <text x="5" y="65" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-weight="600" font-size="16" fill="#F37021" letter-spacing="2">SEGUROS</text>
-</svg>
-"""
-
-# --- CONFIGURAÇÃO DA PÁGINA ---
+# --- CONFIGURAÇÃO DA PÁGINA (FAVICON LOCAL) ---
 st.set_page_config(
     page_title="Classificador - SulAmérica", 
-    page_icon=FAVICON_SULAMERICA, 
+    page_icon="logo.png", 
     layout="centered"
 )
 
-# --- ESTILO CUSTOMIZADO (TRADUÇÃO DO FILE UPLOADER & ESTILOS) ---
+# --- ESTILO CUSTOMIZADO (FUNDO DA IMAGEM & TRADUÇÃO) ---
 st.markdown("""
     <style>
+    /* Imagem de Fundo em toda a aplicação */
+    .stApp {
+        background-image: url("app/static/fundo.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+
+    /* Card Central com fundo claro levemente transparente para contraste */
+    .main .block-container {
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 30px 40px !important;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    
     /* Aumento de Fontes Globais */
     html, body, [class*="css"] {
         font-size: 18px !important;
     }
     
-    /* TRADUÇÃO DO COMPONENTE DE UPLOAD DE ARQUIVOS */
-    /* Esconde o texto original "Drag and drop file here" */
+    .stTextInput input {
+        font-size: 18px !important;
+        padding: 12px !important;
+    }
+
+    /* TRADUÇÃO DO UPLOAD DE ARQUIVOS */
     [data-testid="stFileUploaderDropzoneInstructions"] div span {
         display: none !important;
     }
-    /* Insere o texto em Português */
     [data-testid="stFileUploaderDropzoneInstructions"] div::after {
         content: "Arraste e solte o arquivo aqui";
         font-size: 18px !important;
         font-weight: bold;
         color: #002D62;
     }
-    
-    /* Esconde o limite em inglês "Limit 200MB per file • XLSX" */
     [data-testid="stFileUploaderDropzoneInstructions"] small {
         display: none !important;
     }
-    
-    /* Altera o botão "Browse files" para "Procurar arquivo" */
     [data-testid="stFileUploaderDropzone"] button {
-        font-size: 0px !important; /* Esconde texto em inglês */
+        font-size: 0px !important;
         background-color: #002D62 !important;
         color: white !important;
         border-radius: 6px !important;
@@ -88,7 +95,7 @@ st.markdown("""
         display: block;
     }
 
-    /* Estilo dos demais Botões */
+    /* Estilo dos Botões */
     .stButton>button {
         background-color: #F37021;
         color: white;
@@ -103,11 +110,9 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #D95B0F;
         color: white;
-        border-color: #D95B0F;
         transform: translateY(-2px);
     }
     
-    /* Botão de Download */
     .stDownloadButton>button {
         background-color: #002D62;
         color: white;
@@ -117,20 +122,19 @@ st.markdown("""
         padding: 12px 28px;
     }
 
-    /* Títulos Grandes */
+    /* Títulos */
     .header-title {
-        font-size: 36px !important;
+        font-size: 34px !important;
         font-weight: 800;
         color: #002D62;
         margin-bottom: 5px;
     }
     .header-sub {
-        font-size: 18px !important;
+        font-size: 17px !important;
         color: #555555;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     
-    /* Fontes das Abas */
     button[data-baseweb="tab"] {
         color: #002D62 !important;
         font-size: 20px !important;
@@ -139,11 +143,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CABEÇALHO COM LOGO NATIVO DA SULAMÉRICA ---
+# --- CABEÇALHO COM LOGO LOCAL ---
 col_logo, col_titulo = st.columns([1.2, 2.8])
 
 with col_logo:
-    st.markdown(LOGO_SVG_HTML, unsafe_allow_html=True)
+    st.image("logo.png", width=160)
 
 with col_titulo:
     st.markdown('<p class="header-title">Classificador de Gênero</p>', unsafe_allow_html=True)
@@ -199,7 +203,6 @@ with aba2:
                 st.success("✅ Processamento concluído com sucesso!")
                 st.balloons()
                 
-                # --- DASHBOARD DE RESULTADOS ---
                 st.divider()
                 st.write("📊 **Resumo da Classificação:**")
                 
@@ -214,7 +217,6 @@ with aba2:
                 
                 st.divider()
                 
-                # --- PREPARA O EXCEL FORMATADO ---
                 saida = BytesIO()
                 with pd.ExcelWriter(saida, engine='openpyxl') as writer:
                     df.to_excel(writer, index=False, sheet_name='Resultados')
