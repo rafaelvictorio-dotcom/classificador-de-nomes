@@ -3,7 +3,6 @@ import pandas as pd
 from io import BytesIO
 import gender_guesser.detector as gender
 from openpyxl.utils import get_column_letter
-import base64
 import os
 
 # --- INICIALIZA O MOTOR OFFLINE ---
@@ -31,33 +30,6 @@ def classificar_genero_rapido(nome_completo):
         else:
             return "M"
 
-# --- FUNÇÃO PARA CONVERTER IMAGEM LOCAL EM BASE64 ---
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-# Tenta carregar a imagem de fundo do repositório
-fundo_css = ""
-if os.path.exists("fundo.jpg"):
-    bin_str = get_base64_of_bin_file('fundo.jpg')
-    fundo_css = f"""
-    .stApp {{
-        background-image: url("data:image/jpg;base64,{bin_str}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }}
-    """
-else:
-    # Caso a imagem não seja encontrada, aplica a cor azul da SulAmérica como fundo
-    fundo_css = """
-    .stApp {
-        background-color: #002D62;
-    }
-    """
-
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Classificador - SulAmérica", 
@@ -65,60 +37,71 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- ESTILO CUSTOMIZADO (FUNDO & TRADUÇÃO) ---
-st.markdown(f"""
+# --- ESTILO CUSTOMIZADO (ALTA CONTRASTE & CORES SULAMÉRICA) ---
+st.markdown("""
     <style>
-    {fundo_css}
+    /* Fundo Gradiente Azul SulAmérica */
+    .stApp {
+        background: linear-gradient(135deg, #001A3B 0%, #002D62 50%, #0B4B8A 100%);
+        background-attachment: fixed;
+    }
 
-    /* Card Central Fosco para Leitura */
-    .main .block-container {{
-        background-color: rgba(255, 255, 255, 0.96);
-        padding: 30px 40px !important;
+    /* Card Central Opaco em Branco para Máxima Leitura */
+    .main .block-container {
+        background-color: #FFFFFF !important;
+        padding: 35px 45px !important;
         border-radius: 16px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
         margin-top: 30px;
         margin-bottom: 30px;
-    }}
+    }
     
-    /* Aumento de Fontes Globais */
-    html, body, [class*="css"] {{
+    /* Fontes Globais */
+    html, body, [class*="css"] {
         font-size: 18px !important;
-    }}
+    }
     
-    .stTextInput input {{
+    .stTextInput input {
         font-size: 18px !important;
         padding: 12px !important;
-    }}
+        background-color: #F8FAFC !important;
+        border: 1px solid #CBD5E1 !important;
+        color: #0F172A !important;
+    }
 
     /* TRADUÇÃO DO UPLOAD DE ARQUIVOS */
-    [data-testid="stFileUploaderDropzoneInstructions"] div span {{
+    [data-testid="stFileUploaderDropzoneInstructions"] div span {
         display: none !important;
-    }}
-    [data-testid="stFileUploaderDropzoneInstructions"] div::after {{
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] div::after {
         content: "Arraste e solte o arquivo aqui";
         font-size: 18px !important;
         font-weight: bold;
         color: #002D62;
-    }}
-    [data-testid="stFileUploaderDropzoneInstructions"] small {{
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] small {
         display: none !important;
-    }}
-    [data-testid="stFileUploaderDropzone"] button {{
+    }
+    [data-testid="stFileUploaderDropzone"] {
+        background-color: #F1F5F9 !important;
+        border: 2px dashed #002D62 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
         font-size: 0px !important;
         background-color: #002D62 !important;
         color: white !important;
         border-radius: 6px !important;
         padding: 8px 18px !important;
-    }}
-    [data-testid="stFileUploaderDropzone"] button::after {{
+    }
+    [data-testid="stFileUploaderDropzone"] button::after {
         content: "Procurar arquivo";
         font-size: 16px !important;
         font-weight: bold;
         display: block;
-    }}
+    }
 
     /* Estilo dos Botões */
-    .stButton>button {{
+    .stButton>button {
         background-color: #F37021;
         color: white;
         border-radius: 8px;
@@ -127,41 +110,50 @@ st.markdown(f"""
         font-weight: bold;
         font-size: 18px !important;
         transition: all 0.3s ease-in-out;
-        box-shadow: 0 4px 6px rgba(243, 112, 33, 0.2);
-    }}
-    .stButton>button:hover {{
+        box-shadow: 0 4px 6px rgba(243, 112, 33, 0.3);
+    }
+    .stButton>button:hover {
         background-color: #D95B0F;
         color: white;
         transform: translateY(-2px);
-    }}
+    }
     
-    .stDownloadButton>button {{
+    .stDownloadButton>button {
         background-color: #002D62;
         color: white;
         border-radius: 8px;
         font-weight: bold;
         font-size: 18px !important;
         padding: 12px 28px;
-    }}
+    }
+
+    /* Ajuste nos cards das métricas */
+    [data-testid="stMetric"] {
+        background-color: #F8FAFC !important;
+        padding: 15px !important;
+        border-radius: 10px !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+    }
 
     /* Títulos */
-    .header-title {{
+    .header-title {
         font-size: 34px !important;
         font-weight: 800;
         color: #002D62;
         margin-bottom: 5px;
-    }}
-    .header-sub {{
+    }
+    .header-sub {
         font-size: 17px !important;
-        color: #555555;
+        color: #475569;
         margin-bottom: 20px;
-    }}
+    }
     
-    button[data-baseweb="tab"] {{
+    button[data-baseweb="tab"] {
         color: #002D62 !important;
         font-size: 20px !important;
         font-weight: bold !important;
-    }}
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -196,19 +188,20 @@ with aba1:
         res = classificar_genero_rapido(nome_digitado)
         
         emoji = "👨‍💼 Masculino (M)" if res == "M" else "👩‍💼 Feminino (F)"
-        cor_borda = "#002D62" if res == "M" else "#EC4899"
+        cor_borda = "#002D62" if res == "M" else "#DB2777"
         cor_fundo = "#EFF6FF" if res == "M" else "#FDF2F8"
-        cor_texto = "#1E40AF" if res == "M" else "#BE185D"
+        cor_texto = "#1E40AF" if res == "M" else "#9D174D"
         
+        # Cartão totalmente opaco com borda colorida destacada
         st.markdown(f"""
-            <div style="padding: 24px; margin-top: 18px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border-left: 8px solid {cor_borda}; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
-                <h3 style="margin:0; color: #1F2937; font-size: 28px;">{nome_digitado.title()}</h3>
-                <p style="font-size: 24px; margin: 10px 0 0 0; font-weight: bold; color: {cor_texto};">{emoji}</p>
+            <div style="padding: 24px; margin-top: 18px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border: 2px solid {cor_borda}; border-left: 10px solid {cor_borda}; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                <h3 style="margin:0; color: #0F172A; font-size: 28px;">{nome_digitado.title()}</h3>
+                <p style="font-size: 24px; margin: 10px 0 0 0; font-weight: 800; color: {cor_texto};">{emoji}</p>
             </div>
         """, unsafe_allow_html=True)
 
 with aba2:
-    st.markdown("<p style='font-size: 20px; font-weight: bold;'>Carregue seu arquivo clicando em upload</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 20px; font-weight: bold; color: #002D62;'>Carregue seu arquivo clicando em upload</p>", unsafe_allow_html=True)
     
     arq = st.file_uploader("", type=["xlsx"])
     
