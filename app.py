@@ -36,29 +36,28 @@ def encontrar_coluna_cpf(columns):
             return col
     return None
 
-# --- FUNÇÃO DE HIGIENIZAÇÃO DE NOMES (MAIÚSCULAS) ---
+# --- FUNÇÃO DE HIGIENIZAÇÃO DE NOMES ---
 def limpar_nome(nome):
     if not nome or pd.isna(nome):
         return ""
     
-    # Remove acentos e cedilhas
     nome_normalizado = unicodedata.normalize('NFD', str(nome))
     nome_sem_acentos = ''.join(c for c in nome_normalizado if unicodedata.category(c) != 'Mn')
-    
-    # Remove pontuações, traços e caracteres especiais
     nome_limpo = re.sub(r'[^a-zA-Z\s]', '', nome_sem_acentos)
-    
-    # Espaços simples e em MAIÚSCULAS
     return ' '.join(nome_limpo.split()).upper()
 
-# --- FUNÇÃO DE LIMPEZA DE CPF (SEM PONTOS, TRAÇOS E ZEROS À ESQUERDA) ---
+# --- FUNÇÃO DE LIMPEZA DE CPF (REMOVE APENAS PONTOS, TRAÇOS E ESPAÇOS) ---
 def limpar_cpf(cpf):
     if pd.isna(cpf) or cpf is None:
         return ""
     
-    cpf_str = str(cpf).split('.')[0].strip()
-    cpf_limpo = re.sub(r'[\.\-]', '', cpf_str)
-    return cpf_limpo.lstrip('0')
+    # Converte para texto garantindo a string completa
+    cpf_str = str(cpf).strip()
+    
+    # Remove apenas pontos, traços e espaços
+    cpf_limpo = re.sub(r'[\.\-\s]', '', cpf_str)
+    
+    return cpf_limpo
 
 # --- FUNÇÃO DE CLASSIFICAÇÃO DE GÊNERO ---
 def classificar_genero_rapido(nome_completo):
@@ -241,14 +240,14 @@ with aba1:
         st.markdown(f"""
             <div style="padding: 24px; margin-top: 18px; border-radius: 12px; background-color: #EFF6FF; border: 2px solid #002D62; border-left: 10px solid #002D62; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
                 <p style="margin:0; font-size: 18px; color: #002D62 !important;"><b>Nome Higienizado:</b> {nome_limpo}</p>
-                <p style="margin:8px 0 0 0; font-size: 18px; color: #002D62 !important;"><b>CPF Higienizado (Geral):</b> {cpf_limpo}</p>
+                <p style="margin:8px 0 0 0; font-size: 18px; color: #002D62 !important;"><b>CPF Higienizado:</b> {cpf_limpo}</p>
                 <p style="margin:8px 0 0 0; font-size: 20px; font-weight: bold; color: #F37021 !important;"><b>Gênero Identificado:</b> {emoji}</p>
             </div>
         """, unsafe_allow_html=True)
 
 with aba2:
     st.markdown("### Carregue sua planilha completa")
-    st.write("O sistema irá higienizar o Nome, tratar o CPF (Geral/Sem zeros), identificar o Gênero e remover as colunas antigas.")
+    st.write("O sistema irá higienizar o Nome, remover pontos/traços/espaços do CPF, identificar o Gênero e remover as colunas antigas.")
     
     arq = st.file_uploader("", type=["xlsx"], key="uploader_unificado")
     
@@ -309,7 +308,7 @@ with aba2:
                         tamanho_maximo = max(df_final[col].astype(str).map(len).max(), len(str(col)))
                         worksheet.column_dimensions[get_column_letter(i + 1)].width = tamanho_maximo + 3
                         
-                        # Formatação Geral para todas as células
+                        # Define a formatação 'Geral' para as células (o Excel ajusta zeros automaticamente)
                         for cell in worksheet[get_column_letter(i + 1)]:
                             cell.number_format = 'General'
                 
