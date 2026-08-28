@@ -51,21 +51,21 @@ def limpar_nome(nome):
     # 3. Remove espaços duplos e converte para MAIÚSCULAS
     return ' '.join(nome_limpo.split()).upper()
 
-# --- FUNÇÃO DE LIMPEZA DE CPF ---
+# --- FUNÇÃO DE LIMPEZA DE CPF (REMOVE APENAS PONTOS E TRAÇOS) ---
 def limpar_cpf(cpf):
-    if not cpf or pd.isna(cpf):
+    if pd.isna(cpf) or cpf is None:
         return ""
     
-    # Converts to string e remove decimais do pandas (ex: .0)
-    cpf_str = str(cpf).split('.')[0].strip()
+    # Converte para string tratando inteiros e mantendo zeros se existirem
+    if isinstance(cpf, float):
+        cpf_str = f"{int(cpf):011d}" if not pd.isna(cpf) else ""
+    else:
+        cpf_str = str(cpf).strip()
     
-    # Mantém apenas números (remove pontos, traços, barras e caracteres especiais)
-    cpf_apenas_numeros = re.sub(r'\D', '', cpf_str)
+    # Remove apenas pontos e traços
+    cpf_limpo = re.sub(r'[\.\-]', '', cpf_str)
     
-    # Remove zeros à esquerda
-    cpf_sem_zero = cpf_apenas_numeros.lstrip('0')
-    
-    return cpf_sem_zero
+    return cpf_limpo
 
 # --- FUNÇÃO DE CLASSIFICAÇÃO DE GÊNERO ---
 def classificar_genero_rapido(nome_completo):
@@ -320,7 +320,7 @@ with aba2:
 # --- ABA 3: HIGIENIZAÇÃO DE NOMES E CPF ---
 with aba3:
     st.markdown("### Limpeza e Padronização (Nome e CPF)")
-    st.write("Converte nomes para MAIÚSCULAS sem acentos/símbolos e remove pontuações, traços e zeros à esquerda dos CPFs.")
+    st.write("Converte nomes para MAIÚSCULAS sem acentos/símbolos e remove apenas pontos e traços dos CPFs.")
     
     opcao_limpeza = st.radio("Escolha o modo de higienização:", ["Consulta Única", "Processar Planilha Excel"])
     
@@ -338,14 +338,15 @@ with aba3:
             st.markdown(f"""
                 <div style="padding: 20px; margin-top: 15px; border-radius: 12px; background-color: #EFF6FF; border: 2px solid #002D62; border-left: 10px solid #002D62;">
                     <p style="margin:0; font-size: 18px; color: #002D62 !important;"><b>Nome Higienizado (Maiúsculo):</b> {resultado_nome}</p>
-                    <p style="margin:8px 0 0 0; font-size: 18px; color: #002D62 !important;"><b>CPF Higienizado (Geral/Sem Zeros):</b> {resultado_cpf}</p>
+                    <p style="margin:8px 0 0 0; font-size: 18px; color: #002D62 !important;"><b>CPF Higienizado (Sem pontos/traço):</b> {resultado_cpf}</p>
                 </div>
             """, unsafe_allow_html=True)
 
     else:
         arq_limpeza = st.file_uploader("Carregue seu arquivo para higienização", type=["xlsx"], key="uploader_limpeza")
         if arq_limpeza:
-            df_limpeza = pd.read_excel(arq_limpeza)
+            # Força a leitura do CPF como texto puro para evitar perdas do pandas
+            df_limpeza = pd.read_excel(arq_limpeza, dtype=str)
             col_nome_limp = encontrar_coluna_nome(df_limpeza.columns)
             col_cpf_limp = encontrar_coluna_cpf(df_limpeza.columns)
             
@@ -365,18 +366,12 @@ with aba3:
                     
                     saida_limpa = BytesIO()
                     with pd.ExcelWriter(saida_limpa, engine='openpyxl') as writer:
-                        # Garante exportação em formato de texto/geral
                         df_limpeza.to_excel(writer, index=False, sheet_name='Higienizados')
                         worksheet = writer.sheets['Higienizados']
                         
                         for i, col in enumerate(df_limpeza.columns):
                             tamanho_maximo = max(df_limpeza[col].astype(str).map(len).max(), len(str(col)))
                             worksheet.column_dimensions[get_column_letter(i + 1)].width = tamanho_maximo + 3
-                            
-                            # Força formato Geral/Texto na coluna CPF
-                            if "CPF" in str(col).upper():
-                                for cell in worksheet[get_column_letter(i + 1)]:
-                                    cell.number_format = '@'
                     
                     st.download_button("📥 Baixar Planilha Higienizada", data=saida_limpa.getvalue(), file_name="dados_higienizados.xlsx")
             else:
