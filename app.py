@@ -37,7 +37,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- ESTILO CUSTOMIZADO (ALTA CONTRASTE & CORES SULAMÉRICA) ---
+# --- ESTILO CUSTOMIZADO (CORES AJUSTADAS & ALTO CONTRASTE) ---
 st.markdown("""
     <style>
     /* Fundo Gradiente Azul SulAmérica */
@@ -46,7 +46,7 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    /* Card Central Opaco em Branco para Máxima Leitura */
+    /* Card Central Opaco em Branco para Conteúdo Interno */
     .main .block-container {
         background-color: #FFFFFF !important;
         padding: 35px 45px !important;
@@ -127,20 +127,11 @@ st.markdown("""
         padding: 12px 28px;
     }
 
-    /* Ajuste nos cards das métricas */
-    [data-testid="stMetric"] {
-        background-color: #F8FAFC !important;
-        padding: 15px !important;
-        border-radius: 10px !important;
-        border: 1px solid #E2E8F0 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-    }
-
-    /* Títulos */
+    /* TÍTULOS E SUBTÍTULOS (TÍTULO LARANJA SULAMÉRICA) */
     .header-title {
         font-size: 34px !important;
         font-weight: 800;
-        color: #002D62;
+        color: #F37021 !important; /* Laranja SulAmérica */
         margin-bottom: 5px;
     }
     .header-sub {
@@ -148,11 +139,23 @@ st.markdown("""
         color: #475569;
         margin-bottom: 20px;
     }
-    
+
+    /* ESTILO DAS ABAS (TEXTO E ÍCONES NÃO SELECIONADOS EM BRANCO) */
     button[data-baseweb="tab"] {
-        color: #002D62 !important;
+        color: #FFFFFF !important; /* Branco quando não selecionado */
         font-size: 20px !important;
         font-weight: bold !important;
+        background-color: #002D62 !important;
+        border-radius: 8px 8px 0 0;
+        padding: 10px 20px !important;
+        margin-right: 5px;
+    }
+    
+    /* Aba Ativa/Selecionada */
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #F37021 !important; /* Laranja na aba ativa */
+        background-color: #F1F5F9 !important;
+        border-bottom: 3px solid #F37021 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -192,7 +195,6 @@ with aba1:
         cor_fundo = "#EFF6FF" if res == "M" else "#FDF2F8"
         cor_texto = "#1E40AF" if res == "M" else "#9D174D"
         
-        # Cartão totalmente opaco com borda colorida destacada
         st.markdown(f"""
             <div style="padding: 24px; margin-top: 18px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border: 2px solid {cor_borda}; border-left: 10px solid {cor_borda}; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
                 <h3 style="margin:0; color: #0F172A; font-size: 28px;">{nome_digitado.title()}</h3>
