@@ -15,6 +15,18 @@ def carregar_motor_offline():
 
 detector = carregar_motor_offline()
 
+# --- FUNÇÃO PARA DETECTAR A COLUNA DE NOME ---
+def encontrar_coluna_nome(columns):
+    for col in columns:
+        col_clean = str(col).strip().upper()
+        if col_clean in ["NOME", "NOME COMPLETO", "NOME_COMPLETO", "NOME CLIENTE", "CLIENTE"]:
+            return col
+    # Busca por qualquer coluna que contenha 'NOME'
+    for col in columns:
+        if "NOME" in str(col).strip().upper():
+            return col
+    return None
+
 # --- FUNÇÃO DE HIGIENIZAÇÃO DE NOMES ---
 def limpar_nome(nome):
     if not nome or pd.isna(nome):
@@ -35,7 +47,6 @@ def classificar_genero_rapido(nome_completo):
     if not nome_completo or pd.isna(nome_completo):
         return ""
     
-    # Limpa antes de extrair o primeiro nome
     nome_limpo = limpar_nome(nome_completo)
     if not nome_limpo:
         return ""
@@ -61,7 +72,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- ESTILO CUSTOMIZADO (FORCE BRANCO NOS TEXTOS) ---
+# --- ESTILO CUSTOMIZADO ---
 st.markdown("""
     <style>
     /* Fundo Gradiente Azul SulAmérica */
@@ -76,21 +87,18 @@ st.markdown("""
         font-size: 18px;
     }
     
-    /* Subtítulo do topo */
     .header-sub {
         color: #E2E8F0 !important;
         font-size: 18px !important;
         margin-bottom: 20px;
     }
 
-    /* Rótulos dos Campos em Branco */
     .stTextInput label p, .stFileUploader label p {
         color: #FFFFFF !important;
         font-size: 18px !important;
         font-weight: bold !important;
     }
 
-    /* Campo de Texto de Entrada */
     .stTextInput input {
         font-size: 18px !important;
         padding: 12px !important;
@@ -108,7 +116,6 @@ st.markdown("""
         font-weight: bold !important;
     }
     
-    /* Aba Selecionada (Laranja com indicador visível) */
     button[data-baseweb="tab"][aria-selected="true"] {
         border-bottom: 3px solid #F37021 !important;
     }
@@ -177,7 +184,6 @@ st.markdown("""
         font-size: 18px !important;
     }
 
-    /* TÍTULO PRINCIPAL (LARANJA SULAMÉRICA) */
     .header-title {
         font-size: 34px !important;
         font-weight: 800;
@@ -236,14 +242,15 @@ with aba2:
     
     if arq:
         df = pd.read_excel(arq)
+        col_nome = encontrar_coluna_nome(df.columns)
         
-        if "Nome" in df.columns:
-            st.write("📋 **Pré-visualização dos dados:**")
+        if col_nome:
+            st.write(f"📋 **Coluna identificada:** `{col_nome}`")
             st.dataframe(df.head(3), use_container_width=True)
             
             if st.button("🚀 Processar Todos os Nomes"):
                 with st.spinner("Analisando nomes..."):
-                    df["Gênero Identificado"] = df["Nome"].apply(classificar_genero_rapido)
+                    df["Gênero Identificado"] = df[col_nome].apply(classificar_genero_rapido)
                 
                 st.success("✅ Processamento concluído com sucesso!")
                 st.snow()
@@ -283,9 +290,9 @@ with aba2:
                 
                 st.download_button("📥 Baixar Planilha Final Formatada", data=saida.getvalue(), file_name="clientes_classificados.xlsx")
         else:
-            st.error("⚠️ A planilha precisa de uma coluna com o cabeçalho exato 'Nome'.")
+            st.error("⚠️ Nenhuma coluna de nome encontrada. O cabeçalho deve ser 'Nome', 'NOME' ou variações parecidas.")
 
-# --- NOVA ABA: HIGIENIZAÇÃO DE NOMES ---
+# --- ABA 3: HIGIENIZAÇÃO DE NOMES ---
 with aba3:
     st.markdown("### Limpeza e Remoção de Caracteres Especiais")
     st.write("Remove acentos, ç, pontos, traços e símbolos mantendo apenas letras normais.")
@@ -308,13 +315,15 @@ with aba3:
         arq_limpeza = st.file_uploader("Carregue seu arquivo para higienização", type=["xlsx"], key="uploader_limpeza")
         if arq_limpeza:
             df_limpeza = pd.read_excel(arq_limpeza)
-            if "Nome" in df_limpeza.columns:
-                st.write("📋 **Pré-visualização dos dados:**")
+            col_nome_limp = encontrar_coluna_nome(df_limpeza.columns)
+            
+            if col_nome_limp:
+                st.write(f"📋 **Coluna identificada:** `{col_nome_limp}`")
                 st.dataframe(df_limpeza.head(3), use_container_width=True)
                 
                 if st.button("🧼 Limpar Todos os Nomes da Planilha"):
                     with st.spinner("Higienizando nomes..."):
-                        df_limpeza["Nome Limpo"] = df_limpeza["Nome"].apply(limpar_nome)
+                        df_limpeza["Nome Limpo"] = df_limpeza[col_nome_limp].apply(limpar_nome)
                     
                     st.success("✅ Nomes higienizados com sucesso!")
                     st.dataframe(df_limpeza.head(5), use_container_width=True)
@@ -329,4 +338,4 @@ with aba3:
                     
                     st.download_button("📥 Baixar Planilha Higienizada", data=saida_limpa.getvalue(), file_name="nomes_higienizados.xlsx")
             else:
-                st.error("⚠️ A planilha precisa de uma coluna com o cabeçalho exato 'Nome'.")
+                st.error("⚠️ Nenhuma coluna de nome encontrada. O cabeçalho deve ser 'Nome', 'NOME' ou variações parecidas.")
