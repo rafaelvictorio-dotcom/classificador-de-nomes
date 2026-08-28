@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import gender_guesser.detector as gender
-from openpyxl.utils import get_column_letter # <- Nova ferramenta para mexer nas colunas
+from openpyxl.utils import get_column_letter
 
 # --- INICIALIZA O MOTOR OFFLINE ---
 @st.cache_resource
@@ -29,48 +29,169 @@ def classificar_genero_rapido(nome_completo):
         else:
             return "M"
 
-# --- INTERFACE DO STREAMLIT ---
-st.set_page_config(page_title="Classificador Rápido", page_icon="⚡")
-st.title("Descubra o Gênero pelo Nome ⚡")
-st.write("Modo Ultra-Rápido Offline ativado.")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Classificador - SulAmérica", page_icon="💙", layout="centered")
 
-aba1, aba2 = st.tabs(["🔍 Consulta Única", "📁 Processar Planilha"])
+# --- ESTILO CUSTOMIZADO (CORES E ANIMAÇÕES SULAMÉRICA) ---
+st.markdown("""
+    <style>
+    /* Estilo e Animações dos Botões Principais */
+    .stButton>button {
+        background-color: #F37021;
+        color: white;
+        border-radius: 8px;
+        padding: 10px 24px;
+        border: none;
+        font-weight: bold;
+        font-size: 15px;
+        transition: all 0.3s ease-in-out;
+        box-shadow: 0 4px 6px rgba(243, 112, 33, 0.2);
+    }
+    .stButton>button:hover {
+        background-color: #D95B0F;
+        color: white;
+        border-color: #D95B0F;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(217, 91, 15, 0.3);
+    }
+    .stButton>button:active {
+        transform: translateY(0px);
+    }
+    
+    /* Botão de Download Animado */
+    .stDownloadButton>button {
+        background-color: #002D62;
+        color: white;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: all 0.3s ease-in-out;
+        box-shadow: 0 4px 6px rgba(0, 45, 98, 0.2);
+    }
+    .stDownloadButton>button:hover {
+        background-color: #001A3B;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 26, 59, 0.3);
+    }
+
+    /* Estilo dos Títulos e Textos */
+    .header-title {
+        font-size: 32px;
+        font-weight: 800;
+        color: #002D62; /* Azul SulAmérica */
+        margin-bottom: 5px;
+    }
+    .header-sub {
+        font-size: 15px;
+        color: #555555;
+        margin-bottom: 25px;
+    }
+    
+    /* Cor das abas */
+    button[data-baseweb="tab"] {
+        color: #002D62 !important;
+        font-weight: bold;
+    }
+    
+    /* Animação de Entrada do Cartão */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .card-resultado {
+        animation: fadeIn 0.4s ease-out forwards;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- CABEÇALHO COM LOGO SULAMÉRICA ---
+col_logo, col_titulo = st.columns([1, 3])
+
+with col_logo:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/SulAm%C3%A9rica_Seguros_logo.svg/2560px-SulAm%C3%A9rica_Seguros_logo.svg.png", width=140)
+
+with col_titulo:
+    st.markdown('<p class="header-title">Classificador de Gênero</p>', unsafe_allow_html=True)
+    st.markdown('<p class="header-sub">Ferramenta interna para identificação rápida por primeiro nome.</p>', unsafe_allow_html=True)
+
+st.divider()
+
+# --- ABAS DO SISTEMA ---
+aba1, aba2 = st.tabs(["🔍 Consulta Rápida", "📁 Processamento em Lote (Excel)"])
 
 with aba1:
-    nome_digitado = st.text_input("Nome:")
-    if st.button("Classificar Único") and nome_digitado:
+    st.subheader("Consultar um único nome")
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        nome_digitado = st.text_input("Digite o nome do cliente:")
+    with col2:
+        st.write("")
+        st.write("")
+        btn_consultar = st.button("Classificar Único")
+        
+    if btn_consultar and nome_digitado:
         res = classificar_genero_rapido(nome_digitado)
-        emoji = "👦" if res == "M" else "👧"
-        st.success(f"**{nome_digitado.title()}**: {res} {emoji}")
+        
+        # Define as cores dos Cartões Visuais (Azul para M, Rosa para F)
+        emoji = "👨‍💼 Masculino (M)" if res == "M" else "👩‍💼 Feminino (F)"
+        cor_borda = "#002D62" if res == "M" else "#EC4899" # Azul SulAmérica para M | Rosa para F
+        cor_fundo = "#EFF6FF" if res == "M" else "#FDF2F8"
+        cor_texto = "#1E40AF" if res == "M" else "#BE185D"
+        
+        # Renderiza o Cartão Visual Animado
+        st.markdown(f"""
+            <div class="card-resultado" style="padding: 22px; margin-top: 15px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border-left: 8px solid {cor_borda}; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
+                <h3 style="margin:0; color: #1F2937; font-size: 24px;">{nome_digitado.title()}</h3>
+                <p style="font-size: 20px; margin: 8px 0 0 0; font-weight: bold; color: {cor_texto};">{emoji}</p>
+            </div>
+        """, unsafe_allow_html=True)
 
 with aba2:
-    arq = st.file_uploader("Envie a planilha (.xlsx)", type=["xlsx"])
+    st.subheader("Processamento de Planilhas")
+    st.info("💡 Arraste e solte sua planilha abaixo. A planilha precisa de uma coluna com o cabeçalho exato **Nome**.")
+    
+    arq = st.file_uploader("", type=["xlsx"])
+    
     if arq:
         df = pd.read_excel(arq)
+        
         if "Nome" in df.columns:
-            st.dataframe(df.head(3))
+            st.write("📋 **Pré-visualização dos dados:**")
+            st.dataframe(df.head(3), use_container_width=True)
             
-            if st.button("Processar Nomes"):
-                bar = st.progress(0)
-                df["Gênero Identificado"] = df["Nome"].apply(classificar_genero_rapido)
-                bar.progress(100)
-                st.success("Pronto! Processamento concluído.")
+            if st.button("🚀 Processar Todos os Nomes"):
+                with st.spinner("Analisando nomes..."):
+                    df["Gênero Identificado"] = df["Nome"].apply(classificar_genero_rapido)
                 
-                # --- PREPARA O EXCEL COM LARGURA AUTOMÁTICA ---
+                # Efeitos visuais ao concluir
+                st.success("✅ Processamento concluído com sucesso!")
+                st.balloons() # Balões de Celebração! 🎈
+                
+                # --- DASHBOARD DE RESULTADOS ---
+                st.divider()
+                st.write("📊 **Resumo da Classificação:**")
+                
+                total = len(df)
+                total_m = (df["Gênero Identificado"] == "M").sum()
+                total_f = (df["Gênero Identificado"] == "F").sum()
+                
+                colA, colB, colC = st.columns(3)
+                colA.metric("Total de Clientes", total)
+                colB.metric("Masculino (M)", total_m)
+                colC.metric("Feminino (F)", total_f)
+                
+                st.divider()
+                
+                # --- PREPARA O EXCEL FORMATADO ---
                 saida = BytesIO()
                 with pd.ExcelWriter(saida, engine='openpyxl') as writer:
                     df.to_excel(writer, index=False, sheet_name='Resultados')
-                    
-                    # Acessa a aba do Excel que acabamos de criar
                     worksheet = writer.sheets['Resultados']
-                    
-                    # Passa por todas as colunas para ajustar a largura
                     for i, col in enumerate(df.columns):
-                        # Calcula o tamanho do maior texto na coluna (ou o título dela)
                         tamanho_maximo = max(df[col].astype(str).map(len).max(), len(str(col)))
-                        # Define a largura com uma pequena margem (+ 3 espaços)
                         worksheet.column_dimensions[get_column_letter(i + 1)].width = tamanho_maximo + 3
                 
-                st.download_button("📥 Baixar Planilha", data=saida.getvalue(), file_name="resultado_formatado.xlsx")
+                st.download_button("📥 Baixar Planilha Final Formatada", data=saida.getvalue(), file_name="clientes_classificados.xlsx")
         else:
-            st.error("A planilha precisa de uma coluna com o cabeçalho exato 'Nome'.")
+            st.error("⚠️ A planilha precisa de uma coluna com o cabeçalho exato 'Nome'.")
