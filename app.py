@@ -4,6 +4,7 @@ from io import BytesIO
 import gender_guesser.detector as gender
 from openpyxl.utils import get_column_letter
 import os
+import streamlit.components.v1 as components
 
 # --- INICIALIZA O MOTOR OFFLINE ---
 @st.cache_resource
@@ -37,7 +38,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- ESTILO CUSTOMIZADO (FORCE BRANCO NOS TEXTOS CIRCULADOS) ---
+# --- ESTILO CUSTOMIZADO (FORCE BRANCO NOS TEXTOS) ---
 st.markdown("""
     <style>
     /* Fundo Gradiente Azul SulAmérica */
@@ -59,7 +60,7 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* Rótulo "Digite o nome do cliente" e outros labels de campo em Branco */
+    /* Rótulos dos Campos em Branco */
     .stTextInput label p, .stFileUploader label p {
         color: #FFFFFF !important;
         font-size: 18px !important;
@@ -89,7 +90,7 @@ st.markdown("""
         border-bottom: 3px solid #F37021 !important;
     }
     button[data-baseweb="tab"][aria-selected="true"] div p {
-        color: #F37021 !important; /* Destaque laranja apenas na aba ativa */
+        color: #F37021 !important;
     }
 
     /* TRADUÇÃO E ESTILO DO UPLOAD DE ARQUIVOS */
@@ -222,7 +223,20 @@ with aba2:
                     df["Gênero Identificado"] = df["Nome"].apply(classificar_genero_rapido)
                 
                 st.success("✅ Processamento concluído com sucesso!")
-                st.balloons()
+                
+                # Efeito discreto de comemoração (Fogos/Confetes Sutis)
+                st.snow()
+                components.html("""
+                    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.min.js"></script>
+                    <script>
+                        confetti({
+                            particleCount: 50,
+                            spread: 60,
+                            origin: { y: 0.7 },
+                            colors: ['#F37021', '#002D62', '#FFFFFF']
+                        });
+                    </script>
+                """, height=0)
                 
                 st.divider()
                 st.write("📊 **Resumo da Classificação:**")
