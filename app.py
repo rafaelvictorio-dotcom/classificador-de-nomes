@@ -29,27 +29,74 @@ def classificar_genero_rapido(nome_completo):
         else:
             return "M"
 
-# --- CONFIGURAÇÃO DA PÁGINA (ÍCONE DA ABA ATUALIZADO) ---
-URL_SULAMERICA_ICON = "https://seeklogo.com/images/S/sulamerica-logo-4B07C32C66-seeklogo.com.png"
+# --- SVG VETORIAL OFICIAL DA SULAMÉRICA ---
+FAVICON_SULAMERICA = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%20002D62'/%3E%3Cpath d='M30 65 Q 50 55 70 65 Q 50 75 30 65' fill='%23F37021'/%3E%3Ctext x='50' y='50' font-family='Arial, sans-serif' font-weight='bold' font-size='42' fill='white' text-anchor='middle' dominant-baseline='central'%3ES%3C/text%3E%3C/svg%3E"
 
+LOGO_SVG_HTML = """
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="180" height="45">
+  <path d="M 10 50 Q 30 40 50 50 Q 30 60 10 50" fill="#F37021"/>
+  <text x="5" y="38" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-weight="900" font-size="34" fill="#002D62">SulAmérica</text>
+  <text x="5" y="65" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-weight="600" font-size="16" fill="#F37021" letter-spacing="2">SEGUROS</text>
+</svg>
+"""
+
+# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Classificador - SulAmérica", 
-    page_icon=URL_SULAMERICA_ICON, 
+    page_icon=FAVICON_SULAMERICA, 
     layout="centered"
 )
 
-# --- ESTILO CUSTOMIZADO (CORES E ANIMAÇÕES SULAMÉRICA) ---
+# --- ESTILO CUSTOMIZADO (TRADUÇÃO DO FILE UPLOADER & ESTILOS) ---
 st.markdown("""
     <style>
-    /* Estilo e Animações dos Botões Principais */
+    /* Aumento de Fontes Globais */
+    html, body, [class*="css"] {
+        font-size: 18px !important;
+    }
+    
+    /* TRADUÇÃO DO COMPONENTE DE UPLOAD DE ARQUIVOS */
+    /* Esconde o texto original "Drag and drop file here" */
+    [data-testid="stFileUploaderDropzoneInstructions"] div span {
+        display: none !important;
+    }
+    /* Insere o texto em Português */
+    [data-testid="stFileUploaderDropzoneInstructions"] div::after {
+        content: "Arraste e solte o arquivo aqui";
+        font-size: 18px !important;
+        font-weight: bold;
+        color: #002D62;
+    }
+    
+    /* Esconde o limite em inglês "Limit 200MB per file • XLSX" */
+    [data-testid="stFileUploaderDropzoneInstructions"] small {
+        display: none !important;
+    }
+    
+    /* Altera o botão "Browse files" para "Procurar arquivo" */
+    [data-testid="stFileUploaderDropzone"] button {
+        font-size: 0px !important; /* Esconde texto em inglês */
+        background-color: #002D62 !important;
+        color: white !important;
+        border-radius: 6px !important;
+        padding: 8px 18px !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button::after {
+        content: "Procurar arquivo";
+        font-size: 16px !important;
+        font-weight: bold;
+        display: block;
+    }
+
+    /* Estilo dos demais Botões */
     .stButton>button {
         background-color: #F37021;
         color: white;
         border-radius: 8px;
-        padding: 10px 24px;
+        padding: 12px 28px;
         border: none;
         font-weight: bold;
-        font-size: 15px;
+        font-size: 18px !important;
         transition: all 0.3s ease-in-out;
         box-shadow: 0 4px 6px rgba(243, 112, 33, 0.2);
     }
@@ -58,63 +105,45 @@ st.markdown("""
         color: white;
         border-color: #D95B0F;
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(217, 91, 15, 0.3);
-    }
-    .stButton>button:active {
-        transform: translateY(0px);
     }
     
-    /* Botão de Download Animado */
+    /* Botão de Download */
     .stDownloadButton>button {
         background-color: #002D62;
         color: white;
         border-radius: 8px;
         font-weight: bold;
-        transition: all 0.3s ease-in-out;
-        box-shadow: 0 4px 6px rgba(0, 45, 98, 0.2);
-    }
-    .stDownloadButton>button:hover {
-        background-color: #001A3B;
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0, 26, 59, 0.3);
+        font-size: 18px !important;
+        padding: 12px 28px;
     }
 
-    /* Estilo dos Títulos e Textos */
+    /* Títulos Grandes */
     .header-title {
-        font-size: 32px;
+        font-size: 36px !important;
         font-weight: 800;
-        color: #002D62; /* Azul SulAmérica */
+        color: #002D62;
         margin-bottom: 5px;
     }
     .header-sub {
-        font-size: 15px;
+        font-size: 18px !important;
         color: #555555;
         margin-bottom: 25px;
     }
     
-    /* Cor das abas */
+    /* Fontes das Abas */
     button[data-baseweb="tab"] {
         color: #002D62 !important;
-        font-weight: bold;
-    }
-    
-    /* Animação de Entrada do Cartão */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .card-resultado {
-        animation: fadeIn 0.4s ease-out forwards;
+        font-size: 20px !important;
+        font-weight: bold !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- CABEÇALHO COM LOGO SULAMÉRICA ---
-col_logo, col_titulo = st.columns([1, 3])
+# --- CABEÇALHO COM LOGO NATIVO DA SULAMÉRICA ---
+col_logo, col_titulo = st.columns([1.2, 2.8])
 
 with col_logo:
-    st.image(URL_SULAMERICA_ICON, width=140)
+    st.markdown(LOGO_SVG_HTML, unsafe_allow_html=True)
 
 with col_titulo:
     st.markdown('<p class="header-title">Classificador de Gênero</p>', unsafe_allow_html=True)
@@ -126,9 +155,9 @@ st.divider()
 aba1, aba2 = st.tabs(["🔍 Consulta Rápida", "📁 Processamento em Lote (Excel)"])
 
 with aba1:
-    st.subheader("Consultar um único nome")
+    st.markdown("### Consultar um único nome")
     
-    col1, col2 = st.columns([3, 1])
+    col1, col2 = st.columns([2.8, 1.2])
     with col1:
         nome_digitado = st.text_input("Digite o nome do cliente:")
     with col2:
@@ -145,14 +174,14 @@ with aba1:
         cor_texto = "#1E40AF" if res == "M" else "#BE185D"
         
         st.markdown(f"""
-            <div class="card-resultado" style="padding: 22px; margin-top: 15px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border-left: 8px solid {cor_borda}; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
-                <h3 style="margin:0; color: #1F2937; font-size: 24px;">{nome_digitado.title()}</h3>
-                <p style="font-size: 20px; margin: 8px 0 0 0; font-weight: bold; color: {cor_texto};">{emoji}</p>
+            <div style="padding: 24px; margin-top: 18px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border-left: 8px solid {cor_borda}; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
+                <h3 style="margin:0; color: #1F2937; font-size: 28px;">{nome_digitado.title()}</h3>
+                <p style="font-size: 24px; margin: 10px 0 0 0; font-weight: bold; color: {cor_texto};">{emoji}</p>
             </div>
         """, unsafe_allow_html=True)
 
 with aba2:
-    st.write("Carregue seu arquivo clicando em upload")
+    st.markdown("<p style='font-size: 20px; font-weight: bold;'>Carregue seu arquivo clicando em upload</p>", unsafe_allow_html=True)
     
     arq = st.file_uploader("", type=["xlsx"])
     
