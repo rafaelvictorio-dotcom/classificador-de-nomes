@@ -15,19 +15,28 @@ def carregar_motor_offline():
 
 detector = carregar_motor_offline()
 
-# --- FUNÇÃO PARA DETECTAR A COLUNA DE NOME ---
+# --- FUNÇÕES DE BUSCA DE COLUNAS ---
 def encontrar_coluna_nome(columns):
     for col in columns:
         col_clean = str(col).strip().upper()
         if col_clean in ["NOME", "NOME COMPLETO", "NOME_COMPLETO", "NOME CLIENTE", "CLIENTE"]:
             return col
-    # Busca por qualquer coluna que contenha 'NOME'
     for col in columns:
         if "NOME" in str(col).strip().upper():
             return col
     return None
 
-# --- FUNÇÃO DE HIGIENIZAÇÃO DE NOMES ---
+def encontrar_coluna_cpf(columns):
+    for col in columns:
+        col_clean = str(col).strip().upper()
+        if col_clean in ["CPF", "CPF/CNPJ", "CPF_CNPJ", "DOCUMENTO", "DOC"]:
+            return col
+    for col in columns:
+        if "CPF" in str(col).strip().upper():
+            return col
+    return None
+
+# --- FUNÇÃO DE HIGIENIZAÇÃO DE NOMES (MAIÚSCULAS) ---
 def limpar_nome(nome):
     if not nome or pd.isna(nome):
         return ""
@@ -39,8 +48,24 @@ def limpar_nome(nome):
     # 2. Remove pontuações, traços e caracteres especiais (mantém apenas letras e espaços)
     nome_limpo = re.sub(r'[^a-zA-Z\s]', '', nome_sem_acentos)
     
-    # 3. Remove espaços duplos ou nas pontas
-    return ' '.join(nome_limpo.split())
+    # 3. Remove espaços duplos e converte para MAIÚSCULAS
+    return ' '.join(nome_limpo.split()).upper()
+
+# --- FUNÇÃO DE LIMPEZA DE CPF ---
+def limpar_cpf(cpf):
+    if not cpf or pd.isna(cpf):
+        return ""
+    
+    # Converts to string e remove decimais do pandas (ex: .0)
+    cpf_str = str(cpf).split('.')[0].strip()
+    
+    # Mantém apenas números (remove pontos, traços, barras e caracteres especiais)
+    cpf_apenas_numeros = re.sub(r'\D', '', cpf_str)
+    
+    # Remove zeros à esquerda
+    cpf_sem_zero = cpf_apenas_numeros.lstrip('0')
+    
+    return cpf_sem_zero
 
 # --- FUNÇÃO DE CLASSIFICAÇÃO DE GÊNERO ---
 def classificar_genero_rapido(nome_completo):
@@ -207,7 +232,7 @@ with col_titulo:
 st.divider()
 
 # --- ABAS DO SISTEMA ---
-aba1, aba2, aba3 = st.tabs(["🔍 Consulta Rápida", "📁 Processamento em Lote (Excel)", "🧼 Higienização de Nomes"])
+aba1, aba2, aba3 = st.tabs(["🔍 Consulta Rápida", "📁 Processamento em Lote (Excel)", "🧼 Higienização (Nome e CPF)"])
 
 with aba1:
     st.markdown("### Consultar um único nome")
@@ -230,7 +255,7 @@ with aba1:
         
         st.markdown(f"""
             <div style="padding: 24px; margin-top: 18px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border: 2px solid {cor_borda}; border-left: 10px solid {cor_borda}; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
-                <h3 style="margin:0; color: #0F172A !important; font-size: 28px;">{nome_digitado.title()}</h3>
+                <h3 style="margin:0; color: #0F172A !important; font-size: 28px;">{nome_digitado.upper()}</h3>
                 <p style="font-size: 24px; margin: 10px 0 0 0; font-weight: 800; color: {cor_texto} !important;">{emoji}</p>
             </div>
         """, unsafe_allow_html=True)
@@ -292,22 +317,28 @@ with aba2:
         else:
             st.error("⚠️ Nenhuma coluna de nome encontrada. O cabeçalho deve ser 'Nome', 'NOME' ou variações parecidas.")
 
-# --- ABA 3: HIGIENIZAÇÃO DE NOMES ---
+# --- ABA 3: HIGIENIZAÇÃO DE NOMES E CPF ---
 with aba3:
-    st.markdown("### Limpeza e Remoção de Caracteres Especiais")
-    st.write("Remove acentos, ç, pontos, traços e símbolos mantendo apenas letras normais.")
+    st.markdown("### Limpeza e Padronização (Nome e CPF)")
+    st.write("Converte nomes para MAIÚSCULAS sem acentos/símbolos e remove pontuações, traços e zeros à esquerda dos CPFs.")
     
     opcao_limpeza = st.radio("Escolha o modo de higienização:", ["Consulta Única", "Processar Planilha Excel"])
     
     if opcao_limpeza == "Consulta Única":
-        nome_para_limpar = st.text_input("Digite o nome completo para limpar:", key="input_limpar_unico")
-        if st.button("🧼 Limpar Nome") and nome_para_limpar:
-            resultado_limpo = limpar_nome(nome_para_limpar)
+        c1, c2 = st.columns(2)
+        with c1:
+            nome_para_limpar = st.text_input("Nome completo:", key="input_limpar_unico")
+        with c2:
+            cpf_para_limpar = st.text_input("CPF:", key="input_cpf_unico")
+            
+        if st.button("🧼 Higienizar Dados") and (nome_para_limpar or cpf_para_limpar):
+            resultado_nome = limpar_nome(nome_para_limpar) if nome_para_limpar else "-"
+            resultado_cpf = limpar_cpf(cpf_para_limpar) if cpf_para_limpar else "-"
             
             st.markdown(f"""
                 <div style="padding: 20px; margin-top: 15px; border-radius: 12px; background-color: #EFF6FF; border: 2px solid #002D62; border-left: 10px solid #002D62;">
-                    <p style="margin:0; font-size: 16px; color: #475569 !important;">Nome Original: <b>{nome_para_limpar}</b></p>
-                    <h3 style="margin: 10px 0 0 0; color: #002D62 !important; font-size: 26px;">Nome Limpo: {resultado_limpo}</h3>
+                    <p style="margin:0; font-size: 18px; color: #002D62 !important;"><b>Nome Higienizado (Maiúsculo):</b> {resultado_nome}</p>
+                    <p style="margin:8px 0 0 0; font-size: 18px; color: #002D62 !important;"><b>CPF Higienizado (Geral/Sem Zeros):</b> {resultado_cpf}</p>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -316,26 +347,37 @@ with aba3:
         if arq_limpeza:
             df_limpeza = pd.read_excel(arq_limpeza)
             col_nome_limp = encontrar_coluna_nome(df_limpeza.columns)
+            col_cpf_limp = encontrar_coluna_cpf(df_limpeza.columns)
             
-            if col_nome_limp:
-                st.write(f"📋 **Coluna identificada:** `{col_nome_limp}`")
+            if col_nome_limp or col_cpf_limp:
+                st.write(f"📋 **Colunas identificadas:** Nome = `{col_nome_limp}` | CPF = `{col_cpf_limp}`")
                 st.dataframe(df_limpeza.head(3), use_container_width=True)
                 
-                if st.button("🧼 Limpar Todos os Nomes da Planilha"):
-                    with st.spinner("Higienizando nomes..."):
-                        df_limpeza["Nome Limpo"] = df_limpeza[col_nome_limp].apply(limpar_nome)
+                if st.button("🧼 Higienizar Planilha"):
+                    with st.spinner("Processando dados..."):
+                        if col_nome_limp:
+                            df_limpeza["Nome Limpo"] = df_limpeza[col_nome_limp].apply(limpar_nome)
+                        if col_cpf_limp:
+                            df_limpeza["CPF Limpo"] = df_limpeza[col_cpf_limp].apply(limpar_cpf)
                     
-                    st.success("✅ Nomes higienizados com sucesso!")
+                    st.success("✅ Higienização concluída com sucesso!")
                     st.dataframe(df_limpeza.head(5), use_container_width=True)
                     
                     saida_limpa = BytesIO()
                     with pd.ExcelWriter(saida_limpa, engine='openpyxl') as writer:
-                        df_limpeza.to_excel(writer, index=False, sheet_name='Nomes_Higienizados')
-                        worksheet = writer.sheets['Nomes_Higienizados']
+                        # Garante exportação em formato de texto/geral
+                        df_limpeza.to_excel(writer, index=False, sheet_name='Higienizados')
+                        worksheet = writer.sheets['Higienizados']
+                        
                         for i, col in enumerate(df_limpeza.columns):
                             tamanho_maximo = max(df_limpeza[col].astype(str).map(len).max(), len(str(col)))
                             worksheet.column_dimensions[get_column_letter(i + 1)].width = tamanho_maximo + 3
+                            
+                            # Força formato Geral/Texto na coluna CPF
+                            if "CPF" in str(col).upper():
+                                for cell in worksheet[get_column_letter(i + 1)]:
+                                    cell.number_format = '@'
                     
-                    st.download_button("📥 Baixar Planilha Higienizada", data=saida_limpa.getvalue(), file_name="nomes_higienizados.xlsx")
+                    st.download_button("📥 Baixar Planilha Higienizada", data=saida_limpa.getvalue(), file_name="dados_higienizados.xlsx")
             else:
-                st.error("⚠️ Nenhuma coluna de nome encontrada. O cabeçalho deve ser 'Nome', 'NOME' ou variações parecidas.")
+                st.error("⚠️ Nenhuma coluna de Nome ou CPF foi encontrada na planilha.")
