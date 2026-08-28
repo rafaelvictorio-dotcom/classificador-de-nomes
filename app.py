@@ -51,21 +51,21 @@ def limpar_nome(nome):
     # 3. Remove espaços duplos e converte para MAIÚSCULAS
     return ' '.join(nome_limpo.split()).upper()
 
-# --- FUNÇÃO DE LIMPEZA DE CPF (REMOVE APENAS PONTOS E TRAÇOS) ---
+# --- FUNÇÃO DE LIMPEZA DE CPF (SEM PONTOS, TRAÇOS E SEM ZEROS À ESQUERDA) ---
 def limpar_cpf(cpf):
     if pd.isna(cpf) or cpf is None:
         return ""
     
-    # Converte para string tratando inteiros e mantendo zeros se existirem
-    if isinstance(cpf, float):
-        cpf_str = f"{int(cpf):011d}" if not pd.isna(cpf) else ""
-    else:
-        cpf_str = str(cpf).strip()
+    # Converte para string e remove decimais do pandas (.0)
+    cpf_str = str(cpf).split('.')[0].strip()
     
-    # Remove apenas pontos e traços
+    # Remove pontos e traços
     cpf_limpo = re.sub(r'[\.\-]', '', cpf_str)
     
-    return cpf_limpo
+    # Remove zeros à esquerda e converte para valor limpo
+    cpf_sem_zero = cpf_limpo.lstrip('0')
+    
+    return cpf_sem_zero
 
 # --- FUNÇÃO DE CLASSIFICAÇÃO DE GÊNERO ---
 def classificar_genero_rapido(nome_completo):
@@ -320,7 +320,7 @@ with aba2:
 # --- ABA 3: HIGIENIZAÇÃO DE NOMES E CPF ---
 with aba3:
     st.markdown("### Limpeza e Padronização (Nome e CPF)")
-    st.write("Converte nomes para MAIÚSCULAS sem acentos/símbolos e remove apenas pontos e traços dos CPFs.")
+    st.write("Converte nomes para MAIÚSCULAS sem acentos/símbolos, remove pontos, traços e zeros à esquerda dos CPFs (Formatação Geral).")
     
     opcao_limpeza = st.radio("Escolha o modo de higienização:", ["Consulta Única", "Processar Planilha Excel"])
     
@@ -338,14 +338,13 @@ with aba3:
             st.markdown(f"""
                 <div style="padding: 20px; margin-top: 15px; border-radius: 12px; background-color: #EFF6FF; border: 2px solid #002D62; border-left: 10px solid #002D62;">
                     <p style="margin:0; font-size: 18px; color: #002D62 !important;"><b>Nome Higienizado (Maiúsculo):</b> {resultado_nome}</p>
-                    <p style="margin:8px 0 0 0; font-size: 18px; color: #002D62 !important;"><b>CPF Higienizado (Sem pontos/traço):</b> {resultado_cpf}</p>
+                    <p style="margin:8px 0 0 0; font-size: 18px; color: #002D62 !important;"><b>CPF Higienizado (Geral/Sem Zeros):</b> {resultado_cpf}</p>
                 </div>
             """, unsafe_allow_html=True)
 
     else:
         arq_limpeza = st.file_uploader("Carregue seu arquivo para higienização", type=["xlsx"], key="uploader_limpeza")
         if arq_limpeza:
-            # Força a leitura do CPF como texto puro para evitar perdas do pandas
             df_limpeza = pd.read_excel(arq_limpeza, dtype=str)
             col_nome_limp = encontrar_coluna_nome(df_limpeza.columns)
             col_cpf_limp = encontrar_coluna_cpf(df_limpeza.columns)
@@ -356,22 +355,29 @@ with aba3:
                 
                 if st.button("🧼 Higienizar Planilha"):
                     with st.spinner("Processando dados..."):
+                        # Cria DataFrame apenas com as colunas higienizadas
+                        df_final = pd.DataFrame()
+                        
                         if col_nome_limp:
-                            df_limpeza["Nome Limpo"] = df_limpeza[col_nome_limp].apply(limpar_nome)
+                            df_final["Nome"] = df_limpeza[col_nome_limp].apply(limpar_nome)
                         if col_cpf_limp:
-                            df_limpeza["CPF Limpo"] = df_limpeza[col_cpf_limp].apply(limpar_cpf)
+                            df_final["CPF"] = df_limpeza[col_cpf_limp].apply(limpar_cpf)
                     
-                    st.success("✅ Higienização concluída com sucesso!")
-                    st.dataframe(df_limpeza.head(5), use_container_width=True)
+                    st.success("✅ Higienização concluída! Colunas antigas removidas.")
+                    st.dataframe(df_final.head(5), use_container_width=True)
                     
                     saida_limpa = BytesIO()
                     with pd.ExcelWriter(saida_limpa, engine='openpyxl') as writer:
-                        df_limpeza.to_excel(writer, index=False, sheet_name='Higienizados')
+                        df_final.to_excel(writer, index=False, sheet_name='Higienizados')
                         worksheet = writer.sheets['Higienizados']
                         
-                        for i, col in enumerate(df_limpeza.columns):
-                            tamanho_maximo = max(df_limpeza[col].astype(str).map(len).max(), len(str(col)))
+                        for i, col in enumerate(df_final.columns):
+                            tamanho_maximo = max(df_final[col].astype(str).map(len).max(), len(str(col)))
                             worksheet.column_dimensions[get_column_letter(i + 1)].width = tamanho_maximo + 3
+                            
+                            # Define a formatação das células para 'Geral' (General)
+                            for cell in worksheet[get_column_letter(i + 1)]:
+                                cell.number_format = 'General'
                     
                     st.download_button("📥 Baixar Planilha Higienizada", data=saida_limpa.getvalue(), file_name="dados_higienizados.xlsx")
             else:
