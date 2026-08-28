@@ -29,8 +29,14 @@ def classificar_genero_rapido(nome_completo):
         else:
             return "M"
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Classificador - SulAmérica", page_icon="💙", layout="centered")
+# --- CONFIGURAÇÃO DA PÁGINA (ÍCONE DA ABA ATUALIZADO) ---
+URL_SULAMERICA_ICON = "https://seeklogo.com/images/S/sulamerica-logo-4B07C32C66-seeklogo.com.png"
+
+st.set_page_config(
+    page_title="Classificador - SulAmérica", 
+    page_icon=URL_SULAMERICA_ICON, 
+    layout="centered"
+)
 
 # --- ESTILO CUSTOMIZADO (CORES E ANIMAÇÕES SULAMÉRICA) ---
 st.markdown("""
@@ -108,7 +114,7 @@ st.markdown("""
 col_logo, col_titulo = st.columns([1, 3])
 
 with col_logo:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/SulAm%C3%A9rica_Seguros_logo.svg/2560px-SulAm%C3%A9rica_Seguros_logo.svg.png", width=140)
+    st.image(URL_SULAMERICA_ICON, width=140)
 
 with col_titulo:
     st.markdown('<p class="header-title">Classificador de Gênero</p>', unsafe_allow_html=True)
@@ -133,13 +139,11 @@ with aba1:
     if btn_consultar and nome_digitado:
         res = classificar_genero_rapido(nome_digitado)
         
-        # Define as cores dos Cartões Visuais (Azul para M, Rosa para F)
         emoji = "👨‍💼 Masculino (M)" if res == "M" else "👩‍💼 Feminino (F)"
-        cor_borda = "#002D62" if res == "M" else "#EC4899" # Azul SulAmérica para M | Rosa para F
+        cor_borda = "#002D62" if res == "M" else "#EC4899"
         cor_fundo = "#EFF6FF" if res == "M" else "#FDF2F8"
         cor_texto = "#1E40AF" if res == "M" else "#BE185D"
         
-        # Renderiza o Cartão Visual Animado
         st.markdown(f"""
             <div class="card-resultado" style="padding: 22px; margin-top: 15px; border-radius: 12px; background-color: {cor_fundo}; text-align: center; border-left: 8px solid {cor_borda}; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
                 <h3 style="margin:0; color: #1F2937; font-size: 24px;">{nome_digitado.title()}</h3>
@@ -148,8 +152,7 @@ with aba1:
         """, unsafe_allow_html=True)
 
 with aba2:
-    st.subheader("Processamento de Planilhas")
-    st.info("💡 Arraste e solte sua planilha abaixo. A planilha precisa de uma coluna com o cabeçalho exato **Nome**.")
+    st.write("Carregue seu arquivo clicando em upload")
     
     arq = st.file_uploader("", type=["xlsx"])
     
@@ -164,9 +167,8 @@ with aba2:
                 with st.spinner("Analisando nomes..."):
                     df["Gênero Identificado"] = df["Nome"].apply(classificar_genero_rapido)
                 
-                # Efeitos visuais ao concluir
                 st.success("✅ Processamento concluído com sucesso!")
-                st.balloons() # Balões de Celebração! 🎈
+                st.balloons()
                 
                 # --- DASHBOARD DE RESULTADOS ---
                 st.divider()
