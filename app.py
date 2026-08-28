@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import gender_guesser.detector as gender
+from openpyxl.utils import get_column_letter # <- Nova ferramenta para mexer nas colunas
 
 # --- INICIALIZA O MOTOR OFFLINE ---
-# O cache impede que ele recarregue o dicionário toda vez que você clica em um botão
 @st.cache_resource
 def carregar_motor_offline():
     return gender.Detector(case_sensitive=False)
@@ -15,19 +15,14 @@ def classificar_genero_rapido(nome_completo):
     if not nome_completo or pd.isna(nome_completo):
         return ""
     
-    # Pega o primeiro nome e capitaliza (ex: MARIA -> Maria)
     primeiro_nome = str(nome_completo).strip().split()[0].title()
-    
-    # Busca na biblioteca offline
     resultado = detector.get_gender(primeiro_nome)
     
-    # Converte o resultado gringo para M ou F
     if resultado in ['male', 'mostly_male']:
         return "M"
     elif resultado in ['female', 'mostly_female']:
         return "F"
     else:
-        # Se a biblioteca não conhecer o nome, usa a regra brasileira da última letra
         nome_min = primeiro_nome.lower()
         if nome_min.endswith(('a', 'z', 'y', 'elly', 'ine', 'ane', 'ele', 'ia', 'ce', 'te', 'is')):
             return "F"
@@ -56,19 +51,26 @@ with aba2:
             st.dataframe(df.head(3))
             
             if st.button("Processar Nomes"):
-                # Barra de progresso visual (vai ser tão rápido que talvez você mal veja carregar)
                 bar = st.progress(0)
-                
-                # Aplica a regra em todos os nomes instantaneamente
                 df["Gênero Identificado"] = df["Nome"].apply(classificar_genero_rapido)
-                
                 bar.progress(100)
-                st.success("Pronto! Processamento concluído em menos de 1 segundo.")
+                st.success("Pronto! Processamento concluído.")
                 
+                # --- PREPARA O EXCEL COM LARGURA AUTOMÁTICA ---
                 saida = BytesIO()
-                with pd.ExcelWriter(saida, engine='openpyxl') as w:
-                    df.to_excel(w, index=False)
+                with pd.ExcelWriter(saida, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Resultados')
+                    
+                    # Acessa a aba do Excel que acabamos de criar
+                    worksheet = writer.sheets['Resultados']
+                    
+                    # Passa por todas as colunas para ajustar a largura
+                    for i, col in enumerate(df.columns):
+                        # Calcula o tamanho do maior texto na coluna (ou o título dela)
+                        tamanho_maximo = max(df[col].astype(str).map(len).max(), len(str(col)))
+                        # Define a largura com uma pequena margem (+ 3 espaços)
+                        worksheet.column_dimensions[get_column_letter(i + 1)].width = tamanho_maximo + 3
                 
-                st.download_button("📥 Baixar Planilha", data=saida.getvalue(), file_name="resultado_rapido.xlsx")
+                st.download_button("📥 Baixar Planilha", data=saida.getvalue(), file_name="resultado_formatado.xlsx")
         else:
             st.error("A planilha precisa de uma coluna com o cabeçalho exato 'Nome'.")
