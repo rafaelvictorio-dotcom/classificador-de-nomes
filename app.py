@@ -4,6 +4,8 @@ from io import BytesIO
 import gender_guesser.detector as gender
 from openpyxl.utils import get_column_letter
 import os
+import unicodedata
+import re
 import streamlit.components.v1 as components
 
 # --- INICIALIZA O MOTOR OFFLINE ---
@@ -13,11 +15,32 @@ def carregar_motor_offline():
 
 detector = carregar_motor_offline()
 
+# --- FUNÇÃO DE HIGIENIZAÇÃO DE NOMES ---
+def limpar_nome(nome):
+    if not nome or pd.isna(nome):
+        return ""
+    
+    # 1. Remove acentos e cedilhas
+    nome_normalizado = unicodedata.normalize('NFD', str(nome))
+    nome_sem_acentos = ''.join(c for c in nome_normalizado if unicodedata.category(c) != 'Mn')
+    
+    # 2. Remove pontuações, traços e caracteres especiais (mantém apenas letras e espaços)
+    nome_limpo = re.sub(r'[^a-zA-Z\s]', '', nome_sem_acentos)
+    
+    # 3. Remove espaços duplos ou nas pontas
+    return ' '.join(nome_limpo.split())
+
+# --- FUNÇÃO DE CLASSIFICAÇÃO DE GÊNERO ---
 def classificar_genero_rapido(nome_completo):
     if not nome_completo or pd.isna(nome_completo):
         return ""
     
-    primeiro_nome = str(nome_completo).strip().split()[0].title()
+    # Limpa antes de extrair o primeiro nome
+    nome_limpo = limpar_nome(nome_completo)
+    if not nome_limpo:
+        return ""
+        
+    primeiro_nome = nome_limpo.split()[0].title()
     resultado = detector.get_gender(primeiro_nome)
     
     if resultado in ['male', 'mostly_male']:
@@ -177,15 +200,15 @@ with col_titulo:
 
 st.divider()
 
-# Abas
-aba1, aba2 = st.tabs(["🔍 Consulta Rápida", "📁 Processamento em Lote (Excel)"])
+# --- ABAS DO SISTEMA ---
+aba1, aba2, aba3 = st.tabs(["🔍 Consulta Rápida", "📁 Processamento em Lote (Excel)", "🧼 Higienização de Nomes"])
 
 with aba1:
     st.markdown("### Consultar um único nome")
     
     col1, col2 = st.columns([2.8, 1.2])
     with col1:
-        nome_digitado = st.text_input("Digite o nome do cliente:")
+        nome_digitado = st.text_input("Digite o nome do cliente:", key="input_genero_unico")
     with col2:
         st.write("")
         st.write("")
@@ -209,7 +232,7 @@ with aba1:
 with aba2:
     st.markdown("### Carregue seu arquivo clicando em upload")
     
-    arq = st.file_uploader("", type=["xlsx"])
+    arq = st.file_uploader("", type=["xlsx"], key="uploader_genero")
     
     if arq:
         df = pd.read_excel(arq)
@@ -223,8 +246,6 @@ with aba2:
                     df["Gênero Identificado"] = df["Nome"].apply(classificar_genero_rapido)
                 
                 st.success("✅ Processamento concluído com sucesso!")
-                
-                # Efeito discreto de comemoração (Fogos/Confetes Sutis)
                 st.snow()
                 components.html("""
                     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.min.js"></script>
@@ -263,3 +284,49 @@ with aba2:
                 st.download_button("📥 Baixar Planilha Final Formatada", data=saida.getvalue(), file_name="clientes_classificados.xlsx")
         else:
             st.error("⚠️ A planilha precisa de uma coluna com o cabeçalho exato 'Nome'.")
+
+# --- NOVA ABA: HIGIENIZAÇÃO DE NOMES ---
+with aba3:
+    st.markdown("### Limpeza e Remoção de Caracteres Especiais")
+    st.write("Remove acentos, ç, pontos, traços e símbolos mantendo apenas letras normais.")
+    
+    opcao_limpeza = st.radio("Escolha o modo de higienização:", ["Consulta Única", "Processar Planilha Excel"])
+    
+    if opcao_limpeza == "Consulta Única":
+        nome_para_limpar = st.text_input("Digite o nome completo para limpar:", key="input_limpar_unico")
+        if st.button("🧼 Limpar Nome") and nome_para_limpar:
+            resultado_limpo = limpar_nome(nome_para_limpar)
+            
+            st.markdown(f"""
+                <div style="padding: 20px; margin-top: 15px; border-radius: 12px; background-color: #EFF6FF; border: 2px solid #002D62; border-left: 10px solid #002D62;">
+                    <p style="margin:0; font-size: 16px; color: #475569 !important;">Nome Original: <b>{nome_para_limpar}</b></p>
+                    <h3 style="margin: 10px 0 0 0; color: #002D62 !important; font-size: 26px;">Nome Limpo: {resultado_limpo}</h3>
+                </div>
+            """, unsafe_allow_html=True)
+
+    else:
+        arq_limpeza = st.file_uploader("Carregue seu arquivo para higienização", type=["xlsx"], key="uploader_limpeza")
+        if arq_limpeza:
+            df_limpeza = pd.read_excel(arq_limpeza)
+            if "Nome" in df_limpeza.columns:
+                st.write("📋 **Pré-visualização dos dados:**")
+                st.dataframe(df_limpeza.head(3), use_container_width=True)
+                
+                if st.button("🧼 Limpar Todos os Nomes da Planilha"):
+                    with st.spinner("Higienizando nomes..."):
+                        df_limpeza["Nome Limpo"] = df_limpeza["Nome"].apply(limpar_nome)
+                    
+                    st.success("✅ Nomes higienizados com sucesso!")
+                    st.dataframe(df_limpeza.head(5), use_container_width=True)
+                    
+                    saida_limpa = BytesIO()
+                    with pd.ExcelWriter(saida_limpa, engine='openpyxl') as writer:
+                        df_limpeza.to_excel(writer, index=False, sheet_name='Nomes_Higienizados')
+                        worksheet = writer.sheets['Nomes_Higienizados']
+                        for i, col in enumerate(df_limpeza.columns):
+                            tamanho_maximo = max(df_limpeza[col].astype(str).map(len).max(), len(str(col)))
+                            worksheet.column_dimensions[get_column_letter(i + 1)].width = tamanho_maximo + 3
+                    
+                    st.download_button("📥 Baixar Planilha Higienizada", data=saida_limpa.getvalue(), file_name="nomes_higienizados.xlsx")
+            else:
+                st.error("⚠️ A planilha precisa de uma coluna com o cabeçalho exato 'Nome'.")
